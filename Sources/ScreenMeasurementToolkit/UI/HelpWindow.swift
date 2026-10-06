@@ -1,0 +1,197 @@
+import AppKit
+
+/// The Help window: one scrollable sheet listing every gesture and option.
+/// Rebuilt each time it is shown, so it reflects the current settings.
+final class HelpWindowController: NSObject {
+
+    static let shared = HelpWindowController()
+
+    private var window: NSWindow?
+    private let textView = NSTextView()
+
+    private override init() {
+        super.init()
+        NotificationCenter.default.addObserver(self, selector: #selector(languageChanged), name: .appLanguageChanged, object: nil)
+    }
+    @objc private func languageChanged() {
+        if window != nil { textView.textStorage?.setAttributedString(makeContent()) }
+    }
+
+    func show() {
+        if window == nil { window = makeWindow() }
+        textView.textStorage?.setAttributedString(makeContent())
+        textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+
+        NSApp.activate(ignoringOtherApps: true)
+        window?.center()
+        window?.makeKeyAndOrderFront(nil)
+    }
+
+    private func makeWindow() -> NSWindow {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                              backing: .buffered,
+                              defer: false)
+        AppLanguage.shared.bind(window, key: "Screen Measurement Toolkit Help")
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 380, height: 320)
+        window.level = .normal
+
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.drawsBackground = true
+        textView.backgroundColor = .textBackgroundColor
+        textView.textContainerInset = NSSize(width: 20, height: 18)
+        textView.autoresizingMask = [.width]
+
+        let scroll = NSScrollView(frame: window.contentLayoutRect)
+        scroll.documentView = textView
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.drawsBackground = true
+        scroll.backgroundColor = .textBackgroundColor
+        scroll.autoresizingMask = [.width, .height]
+        window.contentView = scroll
+        return window
+    }
+
+    // MARK: - Content
+
+    private func makeContent() -> NSAttributedString {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+
+        let out = NSMutableAttributedString()
+        out.append(title("\(AppIdentity.name) \(version)"))
+        out.append(body("A screen ruler that floats above every other window. It lives in the menu bar — there is no Dock icon and no main window.\n"))
+
+        out.append(heading("The rulers"))
+        out.append(items([
+            ("Drag a ruler", "reposition the ruler window anywhere on screen"),
+            ("⌘-drag along ruler", "slide its zero position along that ruler axis"),
+            ("Drag the far end", "change its length — the end with the grip dots"),
+            ("⌘-click a ruler", "toggle a guide marker directly at that spot"),
+            ("Right-click a ruler", "set or reset zero, add a cross guide, open settings, hide the ruler, or quit"),
+            ("Move the pointer", "a red line and a pixel readout follow it on both rulers"),
+        ]))
+
+        out.append(heading("Shapes & Measuring"))
+        out.append(body("Click either ruler or open Screen Measurement Toolkit Controls to enter active drawing mode. The rulers turn from neutral charcoal to blueprint blue. Drag anywhere on screen to draw shapes or straight lines without interfering with apps underneath. Drag with Command (⌘) to draw out from the center. Press or hold Shift (⇧) to constrain to a 1:1 ratio (perfect square/circle) or snap lines to 45° angles. Hold both ⇧⌘ to draw out from the center while keeping 1:1. Clicking anywhere on the screen exits drawing mode and returns rulers to neutral.\n"))
+        out.append(items([
+            ("Activate mode", "click either ruler or Screen Measurement Toolkit Controls to enter active drawing mode"),
+            ("Shape modes", "switch between Rectangle (⌘4), Circle (⌘5), and Line (⌘6) in the Shapes menu or Controls"),
+            ("Draw from center", "drag with Command (⌘) to draw outward from center instead of corner"),
+            ("1:1 / Angle lock", "press or hold Shift (⇧) to constrain 1:1 or snap lines to 45° increments"),
+            ("Center + 1:1", "hold ⇧⌘ to draw out from center with a 1:1 ratio"),
+            ("Exit mode", "click anywhere on the screen (or press Esc) to leave active mode; rulers return to neutral"),
+            ("Move shapes", "drag the center symbol, readout badge, or outline to move the shape anywhere on screen"),
+            ("Resize shapes", "drag control handles to resize (hold ⌘ to resize from center, ⇧ to constrain 1:1)"),
+            ("Set values", "double-click a shape or click the sliders icon on its tooltip to open settings"),
+            ("Shapes stay", "letting go of the mouse leaves the shape on screen, so you can place several at once"),
+            ("Dismiss one", "click the ✕ on its readout badge"),
+            ("Dismiss all", "Clear All Shapes in the menu or Controls"),
+            ("Note", "Screen Measurement Toolkit keeps shape interiors click-through so apps underneath still work. Drag via the center symbol, badge tooltip, or outline to reposition."),
+        ]))
+
+        out.append(heading("Marklines and guides"))
+        out.append(items([
+            ("Crosshair", "two screen-wide hairlines follow the pointer — toggle with Crosshair Follows Pointer"),
+            ("⌘-click on screen", "toggle horizontal and vertical cross markers at that position"),
+            ("Drag off a ruler", "drag out perpendicular from either ruler to place a guide where you release"),
+            ("Right-click a ruler", "Add Cross Guide Here — a guide crossing it at the clicked value"),
+            ("Drag a guide", "move it; its badge sits at the screen edge and shows its position on the matching ruler"),
+            ("Hover or drag a guide", "shows its distance to every other guide, one dimension row per pair along the screen edge"),
+            ("Double-click a guide", "remove it — ⌘-click also removes it, or right-click for remove / clear all"),
+            ("Guides menu", "add a guide at the pointer, or clear every guide"),
+        ]))
+        out.append(body("Guides are remembered between launches.\n"))
+
+        out.append(heading("Look and layout"))
+        out.append(items([
+            ("Opacity", "100% down to 30%"),
+            ("Click-Through", "rulers and guides stop taking clicks, so you can work underneath them. The lines keep tracking, but you cannot drag them until you switch it off."),
+            ("Reset Position & Size", "lays the rulers out as an L so both zero marks sit on exactly the same pixel"),
+            ("Reset Zero Marks", "puts both zeros back at the ruler ends"),
+        ]))
+
+        out.append(heading("Angles & Language"))
+        out.append(items([
+            ("Angle tab", "select Angle, then Start Measurement; click O → A → B"),
+            ("Shared vertex", "O is shared by OA and OB; moving the mouse previews OB, and only the third click saves the angle"),
+            ("Protractor", "toggle the translucent protractor with ⌘7 or the menu; drag to move, rotate or resize it"),
+            ("Language", "use Language / 语言 in the menu bar to switch English and Simplified Chinese immediately; your choice is saved"),
+        ]))
+
+        out.append(heading("Good to know"))
+        out.append(items([
+            ("Controls window", "Ruler Controls lets you toggle rulers, opacity, and shapes. Close or minimize it at any time, or reopen it with ⌘,"),
+            ("No permissions", "pointer, buttons and modifiers are polled 60 times a second rather than tapped, so Ruler needs no accessibility or screen-recording access."),
+            ("Always on top", "the rulers join every Space and stay above full-screen windows."),
+            ("Launch at Login", "toggle it in the menu — macOS starts Ruler with your session."),
+            ("Quit", "Quit Ruler in the menu, the controls window, the ruler right-click menu, or ⌘Q."),
+        ]))
+        out.append(heading("License & Credits"))
+        out.append(items([("Derived from", "Distanser by Joel Sandén (MIT License).")]))
+        out.append(body("The original copyright and complete MIT License are included with the app and source code."))
+        out.append(body("\nhttps://github.com/simpel/ruler\n"))
+        return out
+    }
+
+    // MARK: - Text styling
+
+    private func title(_ text: String) -> NSAttributedString {
+        let p = NSMutableParagraphStyle()
+        p.paragraphSpacing = 6
+        return NSAttributedString(string: L(text) + "\n", attributes: [
+            .font: NSFont.systemFont(ofSize: 17, weight: .semibold),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: p,
+        ])
+    }
+
+    private func heading(_ text: String) -> NSAttributedString {
+        let p = NSMutableParagraphStyle()
+        p.paragraphSpacingBefore = 18
+        p.paragraphSpacing = 6
+        return NSAttributedString(string: L(text) + "\n", attributes: [
+            .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: p,
+        ])
+    }
+
+    private func body(_ text: String) -> NSAttributedString {
+        let p = NSMutableParagraphStyle()
+        p.paragraphSpacing = 4
+        p.lineSpacing = 2
+        return NSAttributedString(string: L(text), attributes: [
+            .font: NSFont.systemFont(ofSize: 12),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: p,
+        ])
+    }
+
+    /// Rows of "gesture — what it does", hanging-indented so wrapped lines line up.
+    private func items(_ rows: [(String, String)]) -> NSAttributedString {
+        let out = NSMutableAttributedString()
+        let p = NSMutableParagraphStyle()
+        p.headIndent = 14
+        p.firstLineHeadIndent = 0
+        p.paragraphSpacing = 5
+        p.lineSpacing = 2
+
+        for (term, definition) in rows {
+            let line = NSMutableAttributedString(string: L(term), attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: p,
+            ])
+            line.append(NSAttributedString(string: "  —  " + L(definition) + "\n", attributes: [
+                .font: NSFont.systemFont(ofSize: 12),
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: p,
+            ]))
+            out.append(line)
+        }
+        return out
+    }
+}

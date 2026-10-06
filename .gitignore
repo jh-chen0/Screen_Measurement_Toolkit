@@ -1,0 +1,16 @@
+.build/
+.build-x86_64/
+.build-arm64/
+build/
+.DS_Store
+*.xcuserstate
+.module-cache/
+.swiftpm/
+keys/
+# Local signing material and development configuration
+*.p12
+*.p8
+*.provisionprofile
+*.key
+.env
+.env.*

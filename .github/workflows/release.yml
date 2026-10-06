@@ -1,0 +1,26 @@
+name: Toolkit Release Draft
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check core behavior and license
+        run: ./Tools/check.sh --geometry-only
+      - name: Build and package tagged version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: APP_VERSION="${RELEASE_TAG#v}" ./package.sh
+      - name: Create release draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" build/dist/* \
+            --verify-tag --draft \
+            --title "Screen Measurement Toolkit $RELEASE_TAG" \
+            --notes-file docs/RELEASE_NOTES.md

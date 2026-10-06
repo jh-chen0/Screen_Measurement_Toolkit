@@ -1,0 +1,16 @@
+Screen Measurement Toolkit
+
+This project is an independently maintained derivative of Distanser.
+Upstream project: https://github.com/simpel/ruler
+Upstream baseline: 1bc14313ebc3c6108928eeb16b98bb25f9f23cec (Distanser 1.8.0)
+Original author: Joel Sandén
+Original copyright: Copyright (c) 2026 Joel Sandén
+Original license: MIT License; the complete original text is preserved in LICENSE.
+
+Modifications include a shared-vertex screen-angle tool, a translucent protractor,
+an Angle control panel, English/Simplified Chinese UI, the Dual Measure icon,
+new application identity, feature-directory refactoring, and release packaging.
+
+The project name and modifications do not imply endorsement by the upstream author.
+The original copyright and MIT permission notice are included in source distributions,
+in the app bundle, and in the DMG distribution.
